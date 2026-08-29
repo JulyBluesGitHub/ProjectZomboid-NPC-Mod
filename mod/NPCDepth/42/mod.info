@@ -1,0 +1,8 @@
+name=NPCDepth - Compatibility Probe
+id=NPCDepth
+description=Iteration A diagnostic probe for Project Remnants. No persistent writes or relationship gameplay.
+author=Caspe
+modversion=0.1.0-dev
+versionMin=42.20.0
+category=interface
+
