@@ -7,6 +7,24 @@ NPCDepth.Config = NPCDepth.Config or {
     probeIntervalTicks = 60,
     probeMaxAttempts = 20,
     circuitFailureLimit = 3,
+    schemaVersion = 1,
+    modDataKey = "NPCDepth",
+    sentinelModDataKey = "NPCDepth_Sentinel",
+    idPrefixes = {
+        subject = "npcd:subject:",
+        npc = "npcd:npc:"
+    },
+    relationshipBounds = {
+        min = 0,
+        max = 100
+    },
+    relationshipAxes = {
+        "affection",
+        "fear",
+        "resentment",
+        "respect",
+        "trust"
+    },
     capabilityNames = {
         "frameworkGlobals",
         "companionDiscovery",

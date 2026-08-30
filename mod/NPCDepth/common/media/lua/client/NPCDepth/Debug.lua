@@ -69,6 +69,45 @@ function Debug.BuildCompatibilityLines(report)
     return lines
 end
 
+function Debug.BuildStoreLines(report)
+    if report == nil then
+        return { "NPCDepth global store: not bound this session" }
+    end
+
+    local sentinel = report.sentinel
+    local lines = {
+        "NPCDepth global store report",
+        "status=" .. text(report.status)
+            .. " reason=" .. text(report.reason)
+            .. " persistence=" .. text(report.persistence),
+        "state=" .. text(report.stateStatus)
+            .. " stateReason=" .. text(report.stateReason)
+            .. " schemaVersion=" .. text(report.schemaVersion)
+            .. " revision=" .. text(report.revision),
+        "sentinel.roundTrip=" .. text(sentinel.roundTrip)
+            .. " sentinel.crossSession=" .. text(sentinel.crossSession)
+            .. " sentinel.writeCount=" .. text(sentinel.writeCount)
+    }
+
+    for index = 1, #sentinel.failures do
+        table.insert(lines, "sentinel.failure." .. tostring(index) .. "=" .. text(sentinel.failures[index]))
+    end
+    for index = 1, #report.errors do
+        table.insert(lines, "store.error." .. tostring(index) .. "=" .. text(report.errors[index]))
+    end
+
+    return lines
+end
+
+function Debug.PrintStoreReport(report)
+    local value = report or NPCDepth.GlobalStore.GetReport()
+    local lines = Debug.BuildStoreLines(value)
+    for index = 1, #lines do
+        print("[NPCDepth] " .. lines[index])
+    end
+    return value
+end
+
 function Debug.PrintCompatibilityReport(report)
     local value = report or NPCDepth.CompatibilityProbe.GetReport()
     local lines = Debug.BuildCompatibilityLines(value)

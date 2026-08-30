@@ -28,11 +28,14 @@ NPCDepth.GetCompatibilityReport()
 NPCDepth.GetCompanionSnapshots()
 NPCDepth.PrintCompatibilityReport()
 NPCDepth.ReprobeCompatibility("manual-debug-request")
+NPCDepth.GetStoreReport()
 ```
+
+The persistent store reports separately; see [state-schema.md](state-schema.md) for its statuses and the ModData sentinel gate.
 
 The report includes the observed game build, Remnants manifest metadata, visible framework-global names, per-capability status, and deduplicated diagnostics. It deliberately excludes live Java/NPC objects.
 
-## Remaining Iteration A gate
+## Iteration A gate: passed 2026-08-29
 
 The 2026-08-29 baseline pins Project Zomboid app build `24909800` and the Workshop `NPCFW.jar` hash recorded in [remnants-baseline-20260829.md](remnants-baseline-20260829.md). Shipped Remnants Lua verifies `npcfwGetPlayerFactionRoster()` as a read-only roster source. The profile copies only scalar row fields and never returns live Java/NPC objects.
 
@@ -42,10 +45,9 @@ Completed:
 2. Inventoried shipped `npcfw*` call sites.
 3. Added the verified read-only roster profile and Kahlua fixtures.
 
-Remaining:
+4. Selected one recruited companion in a disposable in-game save, then saved and reloaded.
 
-1. Select one recruited companion in a disposable in-game save.
-2. Save, reload, and confirm whether its `npcId` is stable before enabling durable identity work.
+Result: the companion's `npcId` was stable across the reload. Row `2c9c8ae2-a825-4b3f-bf49-56141b310592` (Cameron Batista) resolved to the same `frameworkKey` before and after, under profile `project-remnants-42-roster-20260829`. Capabilities `companionDiscovery` and `assignmentRead` are both verified.
 
-No durable ID or save-state work begins until that gate passes.
+The gate has passed, so durable ID and save-state work may begin. Re-run this test whenever the pinned Remnants build changes: a new `NPCFW.jar` hash invalidates the evidence above.
 

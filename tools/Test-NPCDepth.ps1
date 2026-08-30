@@ -42,12 +42,60 @@ foreach ($required in @("id=NPCDepth", "modversion=0.1.0-dev", "versionMin=42.20
     }
 }
 
-$forbiddenStateCalls = @(Get-ChildItem -LiteralPath $luaRoot -Filter *.lua -File -Recurse | Select-String -Pattern '\b(ModData|getPlayer)\b')
-if ($forbiddenStateCalls.Count -gt 0) {
-    throw "Iteration A must not access persistent ModData or getPlayer()."
+# Full-line comments are stripped before scanning so a module may describe the
+# globals it is forbidden to call without tripping its own guard.
+function Get-LuaCodeLines {
+    param([string]$Path)
+
+    $lines = @(Get-Content -LiteralPath $Path)
+    $code = [System.Collections.Generic.List[object]]::new()
+    for ($index = 0; $index -lt $lines.Count; $index++) {
+        if ($lines[$index] -match '^\s*--') {
+            continue
+        }
+        $code.Add([pscustomobject]@{ Number = $index + 1; Text = $lines[$index] })
+    }
+    return $code
 }
 
-$upstreamReads = @(Get-ChildItem -LiteralPath $luaRoot -Filter *.lua -File -Recurse | Select-String -Pattern '\b(getActivatedMods|getModInfoByID)\b|pairs\(_G\)')
+function Assert-LuaPatternAbsent {
+    param(
+        [string]$Path,
+        [string]$Pattern,
+        [string]$Message
+    )
+
+    foreach ($line in Get-LuaCodeLines -Path $Path) {
+        if ($line.Text -match $Pattern) {
+            throw ($Message + ": " + $Path + ":" + $line.Number)
+        }
+    }
+}
+
+$luaFiles = @(Get-ChildItem -LiteralPath $luaRoot -Filter *.lua -File -Recurse)
+$globalStorePath = [System.IO.Path]::GetFullPath((Join-Path $luaRoot "client\NPCDepth\GlobalStore.lua"))
+
+if (-not (Test-Path -LiteralPath $globalStorePath -PathType Leaf)) {
+    throw "Missing GlobalStore module: $globalStorePath"
+}
+
+# ModData is the persistence seam: exactly one module may touch it.
+foreach ($file in $luaFiles) {
+    Assert-LuaPatternAbsent -Path $file.FullName -Pattern '\bgetPlayer\b' -Message "getPlayer() is not part of the proven surface yet"
+    if ([System.IO.Path]::GetFullPath($file.FullName) -ne $globalStorePath) {
+        Assert-LuaPatternAbsent -Path $file.FullName -Pattern '\bModData\b' -Message "ModData access escaped GlobalStore.lua"
+    }
+}
+
+# The shared tree is the pure domain layer: plain tables in, plain tables out.
+$sharedRoot = Join-Path $luaRoot "shared"
+foreach ($file in @(Get-ChildItem -LiteralPath $sharedRoot -Filter *.lua -File -Recurse)) {
+    Assert-LuaPatternAbsent -Path $file.FullName -Pattern '\b(ModData|getPlayer|Events|getActivatedMods|getModInfoByID|getGameVersion)\b|\bnpcfw\w*' -Message "Pure domain module referenced a Project Zomboid global"
+    Assert-LuaPatternAbsent -Path $file.FullName -Pattern '\b(os|io)\.' -Message "Pure domain module referenced os/io"
+    Assert-LuaPatternAbsent -Path $file.FullName -Pattern 'math\.random' -Message "Pure domain module used math.random"
+}
+
+$upstreamReads = @($luaFiles | Select-String -Pattern '\b(getActivatedMods|getModInfoByID)\b|pairs\(_G\)')
 $adapterPath = [System.IO.Path]::GetFullPath((Join-Path $luaRoot "client\NPCDepth\ProjectRemnantsAdapter.lua"))
 foreach ($read in $upstreamReads) {
     if ([System.IO.Path]::GetFullPath($read.Path) -ne $adapterPath) {
@@ -86,18 +134,22 @@ try {
 
     $runtimeFiles = @(
         (Join-Path $luaRoot "shared\NPCDepth\Config.lua"),
+        (Join-Path $luaRoot "shared\NPCDepth\State.lua"),
+        (Join-Path $luaRoot "shared\NPCDepth\Migrations.lua"),
         (Join-Path $luaRoot "client\NPCDepth\ProjectRemnantsAdapter.lua"),
         (Join-Path $luaRoot "client\NPCDepth\CompatibilityProbe.lua"),
+        (Join-Path $luaRoot "client\NPCDepth\GlobalStore.lua"),
         (Join-Path $luaRoot "client\NPCDepth\Debug.lua"),
         (Join-Path $luaRoot "client\NPCDepth\Runtime.lua"),
-        (Join-Path $repositoryRoot "tests\fixtures\iteration_a_probe.lua")
+        (Join-Path $repositoryRoot "tests\fixtures\iteration_a_probe.lua"),
+        (Join-Path $repositoryRoot "tests\fixtures\iteration_b_state.lua")
     )
 
     Push-Location $gamePath
     try {
         & $gameJava -classpath "$buildFull;$projectZomboidJar" LuaRuntimeCheck @runtimeFiles
         if ($LASTEXITCODE -ne 0) {
-            throw "Iteration A runtime fixtures failed under Project Zomboid Kahlua."
+            throw "NPCDepth runtime fixtures failed under Project Zomboid Kahlua."
         }
     }
     finally {
@@ -111,7 +163,9 @@ finally {
 }
 
 Write-Output "PASS manifest contract"
-Write-Output "PASS Iteration A no-persistence boundary"
+Write-Output "PASS ModData persistence boundary"
+Write-Output "PASS pure domain layer boundary"
 Write-Output "PASS Project Remnants observation boundary"
 Write-Output "PASS Kahlua syntax compilation"
 Write-Output "PASS Kahlua compatibility-probe runtime fixtures"
+Write-Output "PASS Kahlua schema/migration/sentinel runtime fixtures"

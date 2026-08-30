@@ -620,13 +620,21 @@ Later evidence checkpoints are handled automatically by the plan:
 - If no stable NPC/subject identity exists, stop durable content work and retain only Tier-0 diagnostics.
 - If the Remnants author provides a supported API, replace discovered internals behind the adapter without changing the domain layer.
 
-## 15. Iteration A implementation status
+## 15. Implementation status
 
 Started 2026-08-29:
 
 - **V01-001 complete:** Build 42 development skeleton, recoverable local installer, and local development copy under `Zomboid/mods/NPCDepth`.
 - **V01-002 complete:** the read-only baseline pins Project Zomboid app build `24909800`, records Remnants manifests and JAR hashes, confirms the Workshop Java agent configuration, and verifies both sterile-dressing declarations.
 - **V01-003 complete for Iteration A:** load-safe bounded readiness, safe-mode results, profile recognition, diagnostics, and per-capability circuit breakers. Kahlua fixtures cover Remnants absent, agent timeout, unknown and verified profiles, defensive roster snapshots, and circuit opening.
-- **V01-004 in progress:** shipped Remnants Lua verifies `npcfwGetPlayerFactionRoster()` as a read-only recruited-companion source. NPCDepth now copies its scalar rows behind profile `project-remnants-42-roster-20260829`; one disposable save/reload identity test remains.
+- **V01-004 complete:** shipped Remnants Lua verifies `npcfwGetPlayerFactionRoster()` as a read-only recruited-companion source. NPCDepth now copies its scalar rows behind profile `project-remnants-42-roster-20260829`. The disposable save/reload identity test passed on 2026-08-29: a recruited companion's `frameworkKey` (`2c9c8ae2-a825-4b3f-bf49-56141b310592`, Cameron Batista) was unchanged across the reload. Profile recognition no longer gates on `workshopId`, which is nil at runtime for this install.
+- **V01-005 complete:** schema v1, pure validation, migration/refusal semantics, and the Global ModData binding.
+  `State.lua` and `Migrations.lua` are pure domain modules; `GlobalStore.lua` is the only module permitted to touch
+  `ModData`, and the test suite fails the build if that boundary or the pure-domain boundary is crossed. Sentinels
+  verify that Build 42 preserves numeric-looking string keys, namespaced keys, booleans, integers, floats, nested
+  tables, dense arrays, and empty tables; a store that coerces keys reports `degraded` and durable writes stay off.
+  Kahlua does not expose `next()`, so emptiness is tested with `pairs()`. See
+  [docs/state-schema.md](docs/state-schema.md).
 
-Next: select one recruited companion in a disposable session, record its snapshot, save/reload, and confirm whether the same `npcId` survives. Do not begin relationship persistence or the Maya UI until that identity evidence is recorded.
+Next: confirm `sentinel.crossSession=verified` in a live disposable save (load, quit, reload, read the printed store
+report), then start V01-006 — NPC and relationship-subject identity lifecycle. The Maya UI still waits on V01-008.
