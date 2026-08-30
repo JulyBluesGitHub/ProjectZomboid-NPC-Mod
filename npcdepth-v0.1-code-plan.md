@@ -625,8 +625,8 @@ Later evidence checkpoints are handled automatically by the plan:
 Started 2026-08-29:
 
 - **V01-001 complete:** Build 42 development skeleton, recoverable local installer, and local development copy under `Zomboid/mods/NPCDepth`.
-- **V01-002 partially complete:** read-only baseline collector and report schema work. The current local baseline records Project Zomboid app build `24909800`, confirms both sterile-dressing item declarations, and reports that the Remnants Workshop item and Java agent are absent.
-- **V01-003 partially complete:** load-safe bounded readiness probe, safe-mode results, diagnostic report, and per-capability circuit breaker work. Kahlua runtime fixtures cover Remnants absent, agent timeout, unknown framework profile, and circuit opening.
-- **V01-004 evidence-gated:** no companion-discovery implementation is guessed without the pinned Remnants Lua/runtime surface.
+- **V01-002 complete:** the read-only baseline pins Project Zomboid app build `24909800`, records Remnants manifests and JAR hashes, confirms the Workshop Java agent configuration, and verifies both sterile-dressing declarations.
+- **V01-003 complete for Iteration A:** load-safe bounded readiness, safe-mode results, profile recognition, diagnostics, and per-capability circuit breakers. Kahlua fixtures cover Remnants absent, agent timeout, unknown and verified profiles, defensive roster snapshots, and circuit opening.
+- **V01-004 in progress:** shipped Remnants Lua verifies `npcfwGetPlayerFactionRoster()` as a read-only recruited-companion source. NPCDepth now copies its scalar rows behind profile `project-remnants-42-roster-20260829`; one disposable save/reload identity test remains.
 
-Next: install and enable one pinned Project Remnants build in a disposable setup, run the collector again, then implement only the verified read-only discovery profile. Do not begin relationship persistence or the Maya UI before one recruited companion is selected safely in-session.
+Next: select one recruited companion in a disposable session, record its snapshot, save/reload, and confirm whether the same `npcId` survives. Do not begin relationship persistence or the Maya UI until that identity evidence is recorded.

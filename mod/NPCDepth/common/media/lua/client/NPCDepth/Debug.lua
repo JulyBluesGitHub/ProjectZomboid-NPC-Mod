@@ -30,9 +30,25 @@ function Debug.BuildCompatibilityLines(report)
             .. " version=" .. text(report.remnants.modVersion)
             .. " versionDir=" .. text(report.remnants.versionDir),
         "npcfwReady=" .. text(report.npcfwReady)
-            .. " profileStatus=" .. text(report.profileStatus),
+            .. " profileStatus=" .. text(report.profileStatus)
+            .. " profileId=" .. text(report.profileId),
         "npcfwGlobals=" .. join(report.npcfwGlobals)
     }
+
+    table.insert(lines, "companionCount=" .. text(report.companionCount))
+    for index = 1, #(report.companions or {}) do
+        local companion = report.companions[index]
+        table.insert(
+            lines,
+            "companion." .. tostring(index)
+                .. "=frameworkKey=" .. text(companion.frameworkKey)
+                .. " displayName=" .. text(companion.displayName)
+                .. " assignment=" .. text(companion.assignment)
+                .. " party=" .. text(companion.isPartyMember)
+                .. " baseResident=" .. text(companion.isBaseResident)
+                .. " live=" .. text(companion.isLive)
+        )
+    end
 
     local capabilityNames = NPCDepth.Config.capabilityNames
     for index = 1, #capabilityNames do

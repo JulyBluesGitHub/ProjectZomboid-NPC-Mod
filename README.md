@@ -1,14 +1,17 @@
 # NPCDepth
 
-NPCDepth is an experimental single-player add-on for Project Zomboid Build 42 and Project Remnants. The current code is **Iteration A only**: a load-safe compatibility probe. It does not write save data, alter companions, or implement relationship gameplay yet.
+NPCDepth is an experimental single-player add-on for Project Zomboid Build 42 and Project Remnants. The current code is **Iteration A only**: a load-safe compatibility probe plus one pinned, read-only roster profile. It does not write save data, alter companions, or implement relationship gameplay yet.
 
 ## Current behavior
 
 - Waits until `OnGameStart` before observing Project Remnants.
 - Detects whether Mod ID `ProjectRemnants` is active.
 - Inventories visible `npcfw*` globals without invoking unknown functions.
+- Recognizes the pinned Project Remnants roster surface and copies recruited-companion rows into plain diagnostic snapshots.
 - Stops after a bounded number of attempts and enters safe mode when the agent is unavailable or its API profile is unknown.
 - Prints a Tier-0 compatibility report to the Project Zomboid console.
+
+The pinned profile calls only `npcfwGetPlayerFactionRoster()` under the compatibility circuit breaker. Stable NPC identity remains unverified until a recruited companion survives the disposable save/reload lifecycle test.
 
 Project Remnants is intentionally not a hard manifest dependency yet. That allows the probe to load and explain an absent or incomplete installation.
 

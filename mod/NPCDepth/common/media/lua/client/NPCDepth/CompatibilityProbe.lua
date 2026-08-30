@@ -25,6 +25,7 @@ local function newState(reason)
         final = false,
         printedFinal = false,
         lastObservation = nil,
+        companionSnapshots = {},
         capabilities = newCapabilities(),
         diagnostics = {},
         diagnosticKeys = {},
@@ -51,6 +52,23 @@ local function finalize(result)
     state.result = result
     state.safeMode = true
     state.final = true
+end
+
+local function validateCompanionSnapshots(value)
+    if type(value) ~= "table" then
+        return false
+    end
+    for index = 1, #value do
+        local snapshot = value[index]
+        if type(snapshot) ~= "table"
+            or type(snapshot.frameworkKey) ~= "string"
+            or snapshot.frameworkKey == ""
+            or type(snapshot.displayName) ~= "string"
+            or type(snapshot.assignment) ~= "string" then
+            return false
+        end
+    end
+    return true
 end
 
 local function observeOnce()
@@ -96,6 +114,49 @@ local function observeOnce()
     local globals = observation.frameworkGlobals.names
     if #globals > 0 then
         state.capabilities.frameworkGlobals = "verified"
+
+        local profile = observation.profile or { status = "unknown" }
+        if profile.status == "verified" and profile.id ~= nil then
+            local readOk, snapshots, readError = Probe.CallCapability(
+                "companionDiscovery",
+                function()
+                    return NPCDepth.ProjectRemnantsAdapter.ReadCompanionSnapshots(profile.id)
+                end,
+                validateCompanionSnapshots
+            )
+
+            if readOk then
+                state.companionSnapshots = snapshots
+                state.capabilities.companionDiscovery = "verified"
+                state.capabilities.assignmentRead = "verified"
+                if #snapshots == 0 then
+                    addDiagnostic(
+                        "verified_profile_empty_roster",
+                        "info",
+                        "The verified roster profile loaded; recruit a companion to complete the in-game selection gate."
+                    )
+                else
+                    addDiagnostic(
+                        "verified_profile_roster_read",
+                        "info",
+                        "The verified roster profile returned " .. tostring(#snapshots) .. " recruited companion snapshot(s)."
+                    )
+                end
+                finalize("profile_verified")
+                return
+            end
+
+            addDiagnostic(
+                "verified_profile_read_failed",
+                "error",
+                "The verified roster profile could not read a valid companion snapshot: " .. tostring(readError)
+            )
+            if state.attempts >= NPCDepth.Config.probeMaxAttempts then
+                finalize("profile_read_failed")
+            end
+            return
+        end
+
         addDiagnostic(
             "unknown_remnants_profile",
             "warning",
@@ -209,6 +270,7 @@ function Probe.GetReport()
     local remnants = observation.remnants or {}
     local manifest = remnants.manifest or {}
     local frameworkGlobals = observation.frameworkGlobals or { names = {} }
+    local profile = observation.profile or { status = "unavailable" }
 
     return {
         npcDepthVersion = NPCDepth.Config.version,
@@ -231,11 +293,38 @@ function Probe.GetReport()
         },
         npcfwReady = #frameworkGlobals.names > 0,
         npcfwGlobals = frameworkGlobals.names,
-        profileStatus = #frameworkGlobals.names > 0 and "unknown" or "unavailable",
+        profileStatus = profile.status,
+        profileId = profile.id,
+        companionCount = #state.companionSnapshots,
+        companions = Probe.GetCompanionSnapshots(),
         capabilities = state.capabilities,
         circuits = state.circuits,
         diagnostics = state.diagnostics
     }
+end
+
+
+function Probe.GetCompanionSnapshots()
+    if state == nil then
+        return {}
+    end
+
+    local copies = {}
+    for index = 1, #state.companionSnapshots do
+        local source = state.companionSnapshots[index]
+        copies[index] = {
+            frameworkKey = source.frameworkKey,
+            displayName = source.displayName,
+            assignment = source.assignment,
+            isPartyMember = source.isPartyMember,
+            isBaseResident = source.isBaseResident,
+            isLive = source.isLive,
+            safehouseJob = source.safehouseJob,
+            safehouseJobLabel = source.safehouseJobLabel,
+            currentSafehouseTask = source.currentSafehouseTask
+        }
+    end
+    return copies
 end
 
 function Probe.ConsumeFinalReportFlag()

@@ -36,6 +36,10 @@ function NPCDepth.PrintCompatibilityReport()
     return NPCDepth.Debug.PrintCompatibilityReport()
 end
 
+function NPCDepth.GetCompanionSnapshots()
+    return NPCDepth.CompatibilityProbe.GetCompanionSnapshots()
+end
+
 function NPCDepth.ReprobeCompatibility(reason)
     NPCDepth.CompatibilityProbe.Start(reason or "manual-debug-request")
     if NPCDepth.CompatibilityProbe.ConsumeFinalReportFlag() then

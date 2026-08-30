@@ -34,7 +34,7 @@ getModInfoByID = function(modId)
         getName = function(self) return "Project Remnants Fixture" end,
         getModVersion = function(self) return "fixture-version" end,
         getVersionDir = function(self) return "42" end,
-        getWorkshopID = function(self) return "3738362476" end,
+        getWorkshopID = function(self) return nil end,
         getDir = function(self) return "fixture" end
     }
 end
@@ -76,6 +76,65 @@ assert(unknown.result == "unknown_profile")
 assert(unknown.npcfwReady == true)
 assert(unknown.capabilities.frameworkGlobals == "verified")
 assert(unknown.remnants.modVersion == "fixture-version")
+
+local rosterCalls = 0
+npcfwGetAssignmentOf = function(npc)
+    return "ACTIVE_PARTY"
+end
+npcfwGetPlayerFactionMemberIds = function()
+    return { "npc-b", "npc-a" }
+end
+npcfwIsPlayerFactionMember = function(npc)
+    return true
+end
+npcfwGetPlayerFactionRoster = function()
+    rosterCalls = rosterCalls + 1
+    return {
+        {
+            npcId = "npc-b",
+            displayName = "Blake",
+            assignment = "BASE_RESIDENT",
+            isPartyMember = false,
+            isBaseResident = true,
+            isLive = true,
+            safehouseJob = "GUARD",
+            safehouseJobLabel = "Guard",
+            currentSafehouseTask = "PATROL"
+        },
+        {
+            npcId = "npc-a",
+            displayName = "Alex",
+            assignment = "ACTIVE_PARTY",
+            isPartyMember = true,
+            isBaseResident = false,
+            isLive = true
+        }
+    }
+end
+
+NPCDepth.CompatibilityProbe.Start("fixture-verified-profile")
+local verified = NPCDepth.CompatibilityProbe.GetReport()
+assert(verified.final == true)
+assert(verified.result == "profile_verified")
+assert(verified.safeMode == true)
+assert(verified.profileStatus == "verified")
+assert(verified.profileId == "project-remnants-42-roster-20260829")
+assert(verified.capabilities.frameworkGlobals == "verified")
+assert(verified.capabilities.companionDiscovery == "verified")
+assert(verified.capabilities.assignmentRead == "verified")
+assert(verified.capabilities.stableNpcKey == "unverified")
+assert(verified.companionCount == 2)
+assert(verified.companions[1].frameworkKey == "npc-a")
+assert(verified.companions[1].displayName == "Alex")
+assert(verified.companions[1].isPartyMember == true)
+assert(verified.companions[2].frameworkKey == "npc-b")
+assert(verified.companions[2].isBaseResident == true)
+assert(rosterCalls == 1)
+
+local snapshots = NPCDepth.GetCompanionSnapshots()
+assert(#snapshots == 2)
+snapshots[1].displayName = "mutated fixture copy"
+assert(NPCDepth.GetCompanionSnapshots()[1].displayName == "Alex")
 
 local calls = 0
 for index = 1, NPCDepth.Config.circuitFailureLimit do
